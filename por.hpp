@@ -188,8 +188,8 @@ namespace por {
                 bytes.clear();
                 offset++;
             }
-            std::cout << "conflicts: " << conflicts << std::endl;
-            std::cout << "plots: " << plots << std::endl;
+            // std::cout << "conflicts: " << conflicts << std::endl;
+            // std::cout << "plots: " << plots << std::endl;
             f.close();
         }
 
@@ -288,6 +288,14 @@ namespace por {
 
         Hash challenge() {
             return Hash();
+        }
+
+        int get_plots() {
+            return plots;
+        }
+
+        int get_conflicts() {
+            return conflicts;
         }
 
         protected:
