@@ -4,6 +4,8 @@
 #include <fstream>
 #include <set>
 #include <math.h>
+#include <algorithm>
+#include <map>
 
 namespace fs = std::filesystem;
 
@@ -121,21 +123,92 @@ namespace por {
             }
         }
 
-        void encode(std::vector<Hash>& v) {
-            std::vector<Hash> values;
-            Hash res;
+        // void encode(std::vector<Hash>& v) {
+        //     std::vector<Hash> values;
+        //     Hash res;
+        //     Hash root = v.back();
 
-            for (int i = 0; i < v.size() - 1; i++) {
-                Hash hi;
-                hi.bytes[HASH_SIZE-1] = i;
-                values.push_back(v.back());
-                values.push_back(hi);
-                HASH_FUNCTION(values, 0, 2, res);
-                for(uint8_t j = 0; j < HASH_SIZE; j++) {
-                    v[i].bytes[j] = v[i].bytes[j] ^ res.bytes[j];
+        //     for (int i = 0; i < v.size() - 1; i++) {
+        //         std::vector parents = get_parent_indexes(i);
+        //         for (int j = 0; j < parents.size(); j++) {
+        //             values.push_back(v[parents[j]]);
+        //         }
+
+        //         Hash hi;
+        //         hi.bytes[HASH_SIZE-1] = i;
+        //         values.push_back(hi);
+
+        //         HASH_FUNCTION(values, 0, parents.size() + 1, res);
+        //         for(uint8_t j = 0; j < HASH_SIZE; j++) {
+        //             v[i].bytes[j] = v[i].bytes[j] ^ res.bytes[j];
+        //         }
+        //         values.clear();
+        //     }
+
+        //     // for (int i = 0; i < v.size() - 1; i++) {
+        //     //     Hash hi;
+        //     //     hi.bytes[HASH_SIZE-1] = i;
+        //     //     values.push_back(v.back());
+        //     //     values.push_back(hi);
+        //     //     HASH_FUNCTION(values, 0, 2, res);
+        //     //     for(uint8_t j = 0; j < HASH_SIZE; j++) {
+        //     //         v[i].bytes[j] = v[i].bytes[j] ^ res.bytes[j];
+        //     //     }
+        //     //     values.clear();
+        //     // }
+        // }
+
+        void vde(Hash& inout) {
+
+        }
+
+        void vdd(Hash& inout) {
+
+        }
+
+        void encode(std::vector<Hash>& v) {
+            std::map<int, int> dep;
+            for (int i = 0; i < LEAVES; i += FANOUT) {
+                std::vector<int> indexes = get_path_indexes(i);
+                int i0 = indexes[0];
+                int i1 = indexes[1];
+                dep[i0] = indexes[2];
+                dep[i1] = indexes[2];
+
+                for (int j = 2; j < indexes.size() - 1; j++) {
+                    dep[indexes[j]] = indexes[j + 1];
                 }
-                values.clear();
             }
+
+            vde(v.back());
+
+            for (int i = v.size() - 2; i >= 0; i--) {
+                int parentIndex = dep[i];
+                Hash parent = v[parentIndex];
+                for(uint8_t j = 0; j < HASH_SIZE; j++) {
+                    v[i].bytes[j] = v[i].bytes[j] ^ parent.bytes[j];
+                }
+
+                vde(v[i]);
+            }
+        }
+
+        Proof decode(Proof p) {
+            Proof decoded;
+
+            for (int i = 0; i < p.n - 1; i++) {
+                Hash parent = (i == 0 || i == 1) ? p.at(2) : p.at(i + 1);
+                Hash dec;
+                for(uint8_t j = 0; j < HASH_SIZE; j++) {
+                    dec.bytes[j] = p.at(i).bytes[j] ^ parent.bytes[j];
+                }
+
+                vdd(dec);
+                decoded.hashes.push_back(dec);
+            }
+            vdd(p.hashes[p.n - 1]);
+            decoded.hashes.push_back(p.root());
+            return decoded;
         }
 
         Proof decode(Proof p, std::vector<int> indexes) {
@@ -280,7 +353,8 @@ namespace por {
 
         bool verify(Proof p, Hash challenge) {
             std::vector<int> indexes = get_path_indexes(challenge % LEAVES);
-            Proof d = decode(p, indexes);
+            // Proof d = decode(p, indexes);
+            Proof d = decode(p);
             Hash root = compute_root(&d, indexes);
 
             return root == p.root();
@@ -298,7 +372,7 @@ namespace por {
             return conflicts;
         }
 
-        protected:
+        // protected:
         std::set<Hash> search;
         int conflicts = 0;
         int plots = 0;

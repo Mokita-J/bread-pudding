@@ -7,7 +7,6 @@
 #include <array>
 #include <iostream>
 
-
 namespace merkle {
 
     static inline void serialise_uint64_t(uint64_t n, std::vector<uint8_t>& bytes)
@@ -314,7 +313,7 @@ namespace merkle {
         f.close();
     }
 
-    /// @brief Vector of leaf nodes current in the tree
+    /// @brief Vector of nodes current in the tree
     std::vector<HashT<HASH_SIZE>> nodes;
     uint64_t file_offset;
   };
