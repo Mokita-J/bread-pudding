@@ -6,6 +6,7 @@
 #include <math.h>
 #include <algorithm>
 #include <map>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
@@ -39,6 +40,23 @@ namespace por {
         std::vector<Hash> hashes;
 
         ProofT() {}
+
+        ProofT(const std::string& s) {
+            for (size_t i = 0; i < n; i++) {
+                Hash h(s.substr(i * HASH_SIZE * 2, HASH_SIZE * 2));
+                hashes.push_back(h);
+            }
+        }
+
+        ProofT(const uint8_t* bytes) {
+            size_t i = 0;
+            while (i < n)
+            {
+                Hash h(bytes + i * sizeof(uint8_t));
+                hashes.push_back(h);
+                i++;
+            }
+        }
 
         ProofT(const std::vector<uint8_t>& bytes, const std::vector<int>& indexes) {
             size_t position;
@@ -86,6 +104,18 @@ namespace por {
             Hash dif = h < challenge ? challenge - h : h - challenge;
             return (double)dif.to_uint64() / (double)(challenge.to_uint64() + h.to_uint64());
         }
+
+        std::string to_string() const {
+            std::string s;
+
+            for (size_t i = 0; i < hashes.size(); i++) {
+                std::string h =  hashes[i].to_string();
+                s = s + h;
+                std::cout << "hash string size: " << h.length() << std::endl;
+            }
+
+            return s;
+        }
     };
 
     
@@ -115,8 +145,10 @@ namespace por {
             typedef ProofT<HASH_SIZE, FANOUT, LEAVES> Proof;
 
 
-        PoRepT() {
-            std::string path = "./plot";
+        PoRepT() {}
+
+        void load_plot(std::string path) {
+            // std::string path = "./plot";
             for (const auto & entry : fs::directory_iterator(path)) {
                 Hash h(entry.path().filename());
                 search.insert(h);
@@ -159,11 +191,11 @@ namespace por {
         // }
 
         void vde(Hash& inout) {
-
+            sleep(0.5000521559995832);
         }
 
         void vdd(Hash& inout) {
-
+            sleep(0.03474049910109898);
         }
 
         void encode(std::vector<Hash>& v) {
@@ -353,11 +385,18 @@ namespace por {
 
         bool verify(Proof p, Hash challenge) {
             std::vector<int> indexes = get_path_indexes(challenge % LEAVES);
-            // Proof d = decode(p, indexes);
             Proof d = decode(p);
             Hash root = compute_root(&d, indexes);
 
             return root == p.root();
+        }
+
+        bool verify(std::string proof, std::string challenge) {
+            auto c = Hash(challenge);
+            auto p = Proof(proof);
+            bool v = verify(p, c);
+
+            return v;
         }
 
         Hash challenge() {
@@ -377,5 +416,7 @@ namespace por {
         int conflicts = 0;
         int plots = 0;
     };
+
+    typedef PoRepT<32, merkle::sha256, 2, 64> PoRep;
 
 }
